@@ -1,50 +1,74 @@
-import tkinter as tk
-from tkinter import messagebox
+import streamlit as st
 from datetime import datetime
 
 
-# ---------------- MAIN WINDOW ----------------
+# ---------------- PAGE SETTINGS ----------------
 
-root = tk.Tk()
-root.title("My To-Do List")
-root.geometry("650x650")
-root.configure(bg="#EAF4FF")
+st.set_page_config(
+    page_title="My To-Do List",
+    page_icon="✅",
+    layout="centered"
+)
+
+
+# ---------------- CUSTOM DESIGN ----------------
+
+st.markdown("""
+<style>
+
+.stApp {
+    background-color: #EAF4FF;
+}
+
+.main-title {
+    text-align: center;
+    color: #243B53;
+    font-size: 38px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    text-align: center;
+    color: #627D98;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.counter {
+    text-align: center;
+    color: #4A90E2;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.task-box {
+    background-color: white;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border: 1px solid #DCEBFF;
+}
+
+</style>
+""", unsafe_allow_html=True)
 
 
 # ---------------- TASK STORAGE ----------------
 
-tasks = []
+if "tasks" not in st.session_state:
+    st.session_state.tasks = []
 
 
 # ---------------- FUNCTIONS ----------------
 
-def display_tasks():
-    task_list.delete(0, tk.END)
+def add_task(task_name, priority):
 
-    for number, task in enumerate(tasks, start=1):
-
-        status = "✓" if task["completed"] else "○"
-
-        text = (
-            f"{number}. {status} {task['name']}  "
-            f"[{task['priority']}]  "
-            f"({task['date']})"
-        )
-
-        task_list.insert(tk.END, text)
-
-    update_counter()
-
-
-def add_task(event=None):
-    task_name = task_entry.get().strip()
-    priority = priority_var.get()
+    task_name = task_name.strip()
 
     if task_name == "":
-        messagebox.showwarning(
-            "Warning",
-            "Please enter a task."
-        )
+        st.warning("Please enter a task.")
         return
 
     new_task = {
@@ -54,303 +78,242 @@ def add_task(event=None):
         "date": datetime.now().strftime("%d-%m-%Y")
     }
 
-    tasks.append(new_task)
+    st.session_state.tasks.append(new_task)
 
-    task_entry.delete(0, tk.END)
-
-    display_tasks()
+    st.success("Task added successfully!")
 
 
-def delete_task():
-    selected = task_list.curselection()
+def delete_task(task_number):
 
-    if not selected:
-        messagebox.showwarning(
-            "Warning",
-            "Please select a task to delete."
-        )
+    if not st.session_state.tasks:
+        st.warning("There are no tasks.")
         return
 
-    task_number = selected[0]
+    st.session_state.tasks.pop(task_number)
 
-    tasks.pop(task_number)
-
-    display_tasks()
+    st.success("Task deleted successfully!")
 
 
-def complete_task():
-    selected = task_list.curselection()
+def complete_task(task_number):
 
-    if not selected:
-        messagebox.showwarning(
-            "Warning",
-            "Please select a task."
-        )
+    if not st.session_state.tasks:
+        st.warning("There are no tasks.")
         return
 
-    task_number = selected[0]
-
-    tasks[task_number]["completed"] = not tasks[task_number]["completed"]
-
-    display_tasks()
+    st.session_state.tasks[task_number]["completed"] = (
+        not st.session_state.tasks[task_number]["completed"]
+    )
 
 
 def clear_tasks():
 
-    if len(tasks) == 0:
-        messagebox.showinfo(
-            "Information",
-            "There are no tasks to clear."
-        )
+    if not st.session_state.tasks:
+        st.info("There are no tasks to clear.")
         return
 
-    answer = messagebox.askyesno(
-        "Clear Tasks",
-        "Are you sure you want to clear all tasks?"
-    )
+    st.session_state.tasks.clear()
 
-    if answer:
-        tasks.clear()
-        display_tasks()
-
-
-def update_counter():
-
-    total = len(tasks)
-    completed = sum(task["completed"] for task in tasks)
-    remaining = total - completed
-
-    counter_label.config(
-        text=f"{remaining} Tasks Remaining  •  {completed} Completed"
-    )
+    st.success("All tasks cleared!")
 
 
 # ---------------- TITLE ----------------
 
-title_label = tk.Label(
-    root,
-    text="MY TO-DO LIST",
-    font=("Arial", 26, "bold"),
-    bg="#EAF4FF",
-    fg="#243B53"
+st.markdown(
+    '<div class="main-title">MY TO-DO LIST</div>',
+    unsafe_allow_html=True
 )
 
-title_label.pack(pady=(25, 5))
-
-
-subtitle_label = tk.Label(
-    root,
-    text="Organize your tasks and stay productive",
-    font=("Arial", 11),
-    bg="#EAF4FF",
-    fg="#627D98"
+st.markdown(
+    '<div class="subtitle">'
+    'Organize your tasks and stay productive'
+    '</div>',
+    unsafe_allow_html=True
 )
-
-subtitle_label.pack()
 
 
 # ---------------- TASK COUNTER ----------------
 
-counter_label = tk.Label(
-    root,
-    text="0 Tasks Remaining  •  0 Completed",
-    font=("Arial", 11, "bold"),
-    bg="#EAF4FF",
-    fg="#4A90E2"
+total = len(st.session_state.tasks)
+
+completed = sum(
+    task["completed"]
+    for task in st.session_state.tasks
 )
 
-counter_label.pack(pady=15)
+remaining = total - completed
+
+st.markdown(
+    f'<div class="counter">'
+    f'{remaining} Tasks Remaining &nbsp; • &nbsp; '
+    f'{completed} Completed'
+    f'</div>',
+    unsafe_allow_html=True
+)
 
 
 # ---------------- INPUT AREA ----------------
 
-input_frame = tk.Frame(
-    root,
-    bg="#DCEBFF",
-    padx=20,
-    pady=20
-)
+with st.form("add_task_form"):
 
-input_frame.pack(
-    padx=35,
-    fill="x"
-)
+    task_name = st.text_input(
+        "Task",
+        placeholder="Enter your task here..."
+    )
 
+    priority = st.selectbox(
+        "Priority",
+        ["High", "Medium", "Low"],
+        index=1
+    )
 
-task_entry = tk.Entry(
-    input_frame,
-    font=("Arial", 13),
-    bg="white",
-    fg="#243B53",
-    bd=0
-)
+    add_button = st.form_submit_button(
+        "＋ Add Task",
+        use_container_width=True
+    )
 
-task_entry.pack(
-    side="left",
-    fill="x",
-    expand=True,
-    ipady=10
-)
-
-
-# Press Enter to add task
-task_entry.bind("<Return>", add_task)
-
-
-# ---------------- PRIORITY ----------------
-
-priority_var = tk.StringVar()
-priority_var.set("Medium")
-
-priority_menu = tk.OptionMenu(
-    input_frame,
-    priority_var,
-    "High",
-    "Medium",
-    "Low"
-)
-
-priority_menu.config(
-    font=("Arial", 10),
-    bg="#FFFFFF",
-    fg="#243B53",
-    bd=0,
-    width=8
-)
-
-priority_menu.pack(
-    side="right",
-    padx=(10, 0),
-    ipady=5
-)
-
-
-# ---------------- ADD BUTTON ----------------
-
-add_button = tk.Button(
-    root,
-    text="+  Add Task",
-    font=("Arial", 11, "bold"),
-    bg="#4A90E2",
-    fg="white",
-    activebackground="#357ABD",
-    activeforeground="white",
-    width=20,
-    bd=0,
-    cursor="hand2",
-    command=add_task
-)
-
-add_button.pack(
-    pady=15,
-    ipady=5
-)
+    if add_button:
+        add_task(task_name, priority)
 
 
 # ---------------- TASK LIST ----------------
 
-list_frame = tk.Frame(
-    root,
-    bg="#F0E9FF",
-    padx=15,
-    pady=15
-)
-
-list_frame.pack(
-    padx=35,
-    pady=5,
-    fill="both",
-    expand=True
-)
+st.subheader("📋 Your Tasks")
 
 
-task_list = tk.Listbox(
-    list_frame,
-    font=("Arial", 11),
-    bg="#FFFFFF",
-    fg="#243B53",
-    selectbackground="#8E7CC3",
-    selectforeground="white",
-    bd=0,
-    highlightthickness=0
-)
+if len(st.session_state.tasks) == 0:
 
-task_list.pack(
-    fill="both",
-    expand=True
-)
+    st.info("No tasks yet. Add your first task above!")
 
+else:
 
-# ---------------- BUTTONS ----------------
+    # Display all tasks
 
-button_frame = tk.Frame(
-    root,
-    bg="#EAF4FF"
-)
+    for number, task in enumerate(
+        st.session_state.tasks,
+        start=1
+    ):
 
-button_frame.pack(pady=20)
+        if task["completed"]:
+            status = "✅"
+        else:
+            status = "○"
 
-
-complete_button = tk.Button(
-    button_frame,
-    text="✓ Complete",
-    font=("Arial", 10, "bold"),
-    bg="#5CB85C",
-    fg="white",
-    width=13,
-    bd=0,
-    cursor="hand2",
-    command=complete_task
-)
-
-complete_button.grid(
-    row=0,
-    column=0,
-    padx=5,
-    ipady=5
-)
+        st.markdown(
+            f"""
+            <div class="task-box">
+                <b>{number}. {status} {task["name"]}</b>
+                <br>
+                <small>
+                Priority: <b>{task["priority"]}</b>
+                &nbsp;&nbsp;|&nbsp;&nbsp;
+                Date: {task["date"]}
+                </small>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
-delete_button = tk.Button(
-    button_frame,
-    text="Delete",
-    font=("Arial", 10, "bold"),
-    bg="#F28B82",
-    fg="white",
-    width=13,
-    bd=0,
-    cursor="hand2",
-    command=delete_task
-)
+    # ---------------- SELECT TASK ----------------
 
-delete_button.grid(
-    row=0,
-    column=1,
-    padx=5,
-    ipady=5
-)
+    st.write("### Select a Task")
 
+    task_options = []
 
-clear_button = tk.Button(
-    button_frame,
-    text="Clear All",
-    font=("Arial", 10, "bold"),
-    bg="#9B8AC4",
-    fg="white",
-    width=13,
-    bd=0,
-    cursor="hand2",
-    command=clear_tasks
-)
+    for number, task in enumerate(
+        st.session_state.tasks,
+        start=1
+    ):
+        task_options.append(
+            f"{number}. {task['name']}"
+        )
 
-clear_button.grid(
-    row=0,
-    column=2,
-    padx=5,
-    ipady=5
-)
+    selected_task = st.selectbox(
+        "Choose a task",
+        task_options
+    )
+
+    selected_number = task_options.index(
+        selected_task
+    )
 
 
-# ---------------- START APPLICATION ----------------
+    # ---------------- BUTTONS ----------------
 
-root.mainloop()
+    col1, col2, col3 = st.columns(3)
+
+
+    # Complete button
+
+    with col1:
+
+        if st.button(
+            "✓ Complete / Undo",
+            use_container_width=True
+        ):
+
+            complete_task(selected_number)
+
+            st.rerun()
+
+
+    # Delete button
+
+    with col2:
+
+        if st.button(
+            "🗑️ Delete",
+            use_container_width=True
+        ):
+
+            delete_task(selected_number)
+
+            st.rerun()
+
+
+    # Clear button
+
+    with col3:
+
+        if st.button(
+            "🧹 Clear All",
+            use_container_width=True
+        ):
+
+            st.session_state.confirm_clear = True
+
+
+# ---------------- CLEAR CONFIRMATION ----------------
+
+if st.session_state.get("confirm_clear", False):
+
+    st.warning(
+        "Are you sure you want to clear all tasks?"
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        if st.button(
+            "Yes, Clear All",
+            use_container_width=True
+        ):
+
+            clear_tasks()
+
+            st.session_state.confirm_clear = False
+
+            st.rerun()
+
+
+    with col2:
+
+        if st.button(
+            "Cancel",
+            use_container_width=True
+        ):
+
+            st.session_state.confirm_clear = False
+
+            st.rerun()
